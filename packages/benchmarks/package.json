@@ -1,0 +1,22 @@
+{
+  "name": "@workflow/benchmarks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Latency benchmarks for Workflow DevKit world implementations",
+  "type": "module",
+  "scripts": {
+    "bench": "vitest bench"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "11.7.1",
+    "@types/jsonlines": "0.1.5",
+    "@types/node": "catalog:",
+    "@workflow/tsconfig": "workspace:*",
+    "@workflow/world": "workspace:*",
+    "@workflow/world-testing": "workspace:*",
+    "jsonlines": "0.1.1",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  },
+  "packageManager": "pnpm@10.15.1"
+}

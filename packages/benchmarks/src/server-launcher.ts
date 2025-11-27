@@ -1,0 +1,71 @@
+import cp from 'node:child_process';
+import path from 'node:path';
+import jsonlines from 'jsonlines';
+
+interface ServerControl {
+  state: 'listening';
+  info: { port: number };
+  kill: () => void;
+}
+
+/**
+ * Starts a workflow test server without vitest hooks.
+ * Returns a control object with port info and a kill function.
+ */
+export async function launchServer(opts: {
+  world: string;
+}): Promise<ServerControl> {
+  // world-testing directory (where server.mjs lives and has the built workflows)
+  const worldTestingDir = path.join(process.cwd(), '../world-testing');
+  const serverPath = path.join(worldTestingDir, 'dist/src/server.mjs');
+
+  const proc = cp.spawn('node', [serverPath], {
+    stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
+    cwd: worldTestingDir, // Run from world-testing directory
+    env: {
+      ...process.env,
+      WORKFLOW_TARGET_WORLD: opts.world,
+      CONTROL_FD: '3',
+    },
+  });
+
+  // Optionally log stderr for debugging (uncomment when needed)
+  // proc.stderr?.on('data', (chunk) => {
+  //   console.error(`[${opts.world}] ${chunk.toString()}`);
+  // });
+
+  const fd3 = proc.stdio[3];
+  if (!fd3) {
+    throw new Error('fd3 should be defined');
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      proc.kill();
+      reject(new Error('Server startup timeout'));
+    }, 60_000);
+
+    fd3.pipe(jsonlines.parse()).on('data', (chunk: any) => {
+      clearTimeout(timeout);
+      if (chunk.state === 'listening') {
+        resolve({
+          state: 'listening',
+          info: { port: chunk.info.port },
+          kill: () => proc.kill(),
+        });
+      }
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+
+    proc.on('exit', (code) => {
+      if (code !== 0 && code !== null) {
+        clearTimeout(timeout);
+        reject(new Error(`Server exited with code ${code}`));
+      }
+    });
+  });
+}

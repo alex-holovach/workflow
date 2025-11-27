@@ -317,6 +317,36 @@ importers:
         specifier: workspace:*
         version: link:../workflow
 
+  packages/benchmarks:
+    devDependencies:
+      '@testcontainers/postgresql':
+        specifier: 11.7.1
+        version: 11.7.1
+      '@types/jsonlines':
+        specifier: 0.1.5
+        version: 0.1.5
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.0
+      '@workflow/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@workflow/world':
+        specifier: workspace:*
+        version: link:../world
+      '@workflow/world-testing':
+        specifier: workspace:*
+        version: link:../world-testing
+      jsonlines:
+        specifier: 0.1.1
+        version: 0.1.1
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.0)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
+      zod:
+        specifier: 'catalog:'
+        version: 4.1.11
+
   packages/builders:
     dependencies:
       '@swc/core':
