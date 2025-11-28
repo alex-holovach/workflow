@@ -3,10 +3,6 @@ import * as z from 'zod';
 
 const Invoke = z.object({ runId: z.coerce.string() });
 
-/**
- * Creates a fetcher to interact with a workflow server.
- * This is a simplified version without vitest hooks.
- */
 export function createBenchmarkFetcher(port: number) {
   const baseUrl = `http://localhost:${port}`;
 

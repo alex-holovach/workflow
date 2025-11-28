@@ -1,8 +1,3 @@
-/**
- * Sequential-steps benchmark workflow.
- * Measures the latency of executing N steps sequentially (one after another).
- */
-
 async function work(i: number): Promise<number> {
   'use step';
   return i;

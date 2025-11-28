@@ -8,20 +8,15 @@ interface ServerControl {
   kill: () => void;
 }
 
-/**
- * Starts the benchmark server without vitest hooks.
- * Returns a control object with port info and a kill function.
- */
 export async function launchServer(opts: {
   world: string;
 }): Promise<ServerControl> {
-  // Use local benchmark server (built by wf build)
   const benchmarksDir = path.join(process.cwd());
   const serverPath = path.join(benchmarksDir, 'dist/server.mjs');
 
   const proc = cp.spawn('node', [serverPath], {
     stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
-    cwd: benchmarksDir, // Run from benchmarks directory
+    cwd: benchmarksDir,
     env: {
       ...process.env,
       WORKFLOW_TARGET_WORLD: opts.world,
@@ -29,10 +24,9 @@ export async function launchServer(opts: {
     },
   });
 
-  // Optionally log stderr for debugging (uncomment when needed)
-  // proc.stderr?.on('data', (chunk) => {
-  //   console.error(`[${opts.world}] ${chunk.toString()}`);
-  // });
+  proc.stderr?.on('data', (chunk) => {
+    console.error(`[server:${opts.world}] ${chunk.toString()}`);
+  });
 
   const fd3 = proc.stdio[3];
   if (!fd3) {

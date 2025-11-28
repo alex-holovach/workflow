@@ -2,30 +2,19 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import { bench, describe } from 'vitest';
+import { bench, beforeAll, describe } from 'vitest';
 import { createBenchmarkFetcher } from './fetcher.js';
 import { launchServer } from './server-launcher.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const packagesDir = path.resolve(__dirname, '../..'); // benchmarks/src -> benchmarks -> packages
-
-/**
- * E2E Workflow Latency Benchmarks
- *
- * Compares step execution latency between local (filesystem) and postgres worlds.
- * Tests measure the full workflow lifecycle: invoke -> step execution -> completion.
- *
- * Uses dedicated benchmark workflows from packages/benchmarks/workflows/:
- * - single-step.ts: One durable step (addition)
- * - parallel-steps.ts: N steps in parallel via Promise.all
- * - sequential-steps.ts: N steps executed sequentially
- *
- * Requires Docker to be running for postgres benchmarks.
- */
+const packagesDir = path.resolve(__dirname, '../..');
+const postgresWorldPath = path.join(
+  packagesDir,
+  'world-postgres/dist/index.js'
+);
 
 type BenchFetcher = ReturnType<typeof createBenchmarkFetcher>;
 
-// Helper to poll until workflow completes
 async function waitForCompletion(
   fetcher: BenchFetcher,
   runId: string,
@@ -39,71 +28,70 @@ async function waitForCompletion(
   return run;
 }
 
-// Module-level setup - runs when file is imported
-console.log('Setting up benchmark servers...');
-
-// Use 'embedded' for local world (built-in alias), absolute path for postgres
-const postgresWorldPath = path.join(
-  packagesDir,
-  'world-postgres/dist/index.js'
-);
-
-const localServerPromise = launchServer({ world: 'embedded' })
-  .then((server) => {
-    console.log('Local server ready on port:', server.info.port);
-    return { fetcher: createBenchmarkFetcher(server.info.port), server };
-  })
-  .catch((err) => {
-    console.error('Failed to start local server:', err);
-    throw err;
-  });
-
-const postgresSetupPromise = (async () => {
-  try {
-    console.log('Starting postgres container...');
-    const container = await new PostgreSqlContainer(
-      'postgres:15-alpine'
-    ).start();
-    const connectionString = container.getConnectionUri();
-
-    process.env.WORKFLOW_POSTGRES_URL = connectionString;
-    process.env.DATABASE_URL = connectionString;
-
-    console.log('Running postgres migrations...');
-    execSync('pnpm --filter @workflow/world-postgres db:push', {
-      stdio: 'inherit',
-      env: process.env,
-    });
-
-    const server = await launchServer({ world: postgresWorldPath });
-    console.log('Postgres server ready on port:', server.info.port);
-    return {
-      fetcher: createBenchmarkFetcher(server.info.port),
-      server,
-      container,
-    };
-  } catch (error) {
-    console.warn('⚠ Postgres not available - Docker may not be running');
-    return null;
+let localServerPromise: ReturnType<typeof launchServer> | null = null;
+function getLocalServer() {
+  if (!localServerPromise) {
+    localServerPromise = launchServer({ world: 'embedded' });
   }
-})();
+  return localServerPromise;
+}
 
-// Cleanup on process exit
+let postgresSetupPromise: Promise<{
+  fetcher: BenchFetcher;
+  server: Awaited<ReturnType<typeof launchServer>>;
+  container: Awaited<ReturnType<PostgreSqlContainer['start']>>;
+}> | null = null;
+
+async function getPostgresSetup() {
+  if (!postgresSetupPromise) {
+    postgresSetupPromise = (async () => {
+      const container = await new PostgreSqlContainer(
+        'postgres:15-alpine'
+      ).start();
+      process.env.WORKFLOW_POSTGRES_URL = container.getConnectionUri();
+      process.env.DATABASE_URL = container.getConnectionUri();
+
+      execSync('pnpm --filter @workflow/world-postgres db:push', {
+        stdio: 'inherit',
+        env: process.env,
+      });
+
+      const server = await launchServer({ world: postgresWorldPath });
+      return {
+        fetcher: createBenchmarkFetcher(server.info.port),
+        server,
+        container,
+      };
+    })();
+  }
+  return postgresSetupPromise;
+}
+
 process.on('exit', () => {
-  localServerPromise.then(({ server }) => server.kill()).catch(() => {});
+  localServerPromise?.then((server) => server.kill()).catch(() => {});
   postgresSetupPromise
-    .then((p) => {
-      p?.server.kill();
-      p?.container.stop();
+    ?.then((p) => {
+      p.server.kill();
+      p.container.stop();
     })
     .catch(() => {});
 });
+
+async function getLocalFetcher() {
+  const server = await getLocalServer();
+  return createBenchmarkFetcher(server.info.port);
+}
+
+async function getPostgresFetcher() {
+  const postgres = await getPostgresSetup();
+  return postgres.fetcher;
+}
 
 describe('Local World - Step Execution Latency', () => {
   bench(
     'single step',
     async () => {
-      const { fetcher } = await localServerPromise;
+      const fetcher = await getLocalFetcher();
       const { runId } = await fetcher.invoke(
         'workflows/single-step.ts',
         'singleStep',
@@ -115,13 +103,13 @@ describe('Local World - Step Execution Latency', () => {
   );
 
   bench(
-    'parallel steps (100)',
+    'parallel steps (20)',
     async () => {
-      const { fetcher } = await localServerPromise;
+      const fetcher = await getLocalFetcher();
       const { runId } = await fetcher.invoke(
         'workflows/parallel-steps.ts',
         'parallelSteps',
-        [100]
+        [20]
       );
       await waitForCompletion(fetcher, runId, 50);
     },
@@ -131,7 +119,7 @@ describe('Local World - Step Execution Latency', () => {
   bench(
     'sequential steps (10)',
     async () => {
-      const { fetcher } = await localServerPromise;
+      const fetcher = await getLocalFetcher();
       const { runId } = await fetcher.invoke(
         'workflows/sequential-steps.ts',
         'sequentialSteps',
@@ -145,7 +133,7 @@ describe('Local World - Step Execution Latency', () => {
   bench(
     'invoke latency only',
     async () => {
-      const { fetcher } = await localServerPromise;
+      const fetcher = await getLocalFetcher();
       await fetcher.invoke('workflows/single-step.ts', 'singleStep', [1, 2]);
     },
     { iterations: 100, warmupIterations: 10 }
@@ -153,35 +141,32 @@ describe('Local World - Step Execution Latency', () => {
 });
 
 describe('Postgres World - Step Execution Latency', () => {
-  // Note: Postgres is slower than local due to pg-boss queue and database overhead
-  // Fewer iterations to keep benchmark time reasonable
+  beforeAll(() => getPostgresSetup());
 
   bench(
     'single step',
     async () => {
-      const postgres = await postgresSetupPromise;
-      if (!postgres) return;
-      const { runId } = await postgres.fetcher.invoke(
+      const fetcher = await getPostgresFetcher();
+      const { runId } = await fetcher.invoke(
         'workflows/single-step.ts',
         'singleStep',
         [1, 2]
       );
-      await waitForCompletion(postgres.fetcher, runId, 100);
+      await waitForCompletion(fetcher, runId, 100);
     },
     { iterations: 10, warmupIterations: 2 }
   );
 
   bench(
-    'parallel steps (100)',
+    'parallel steps (20)',
     async () => {
-      const postgres = await postgresSetupPromise;
-      if (!postgres) return;
-      const { runId } = await postgres.fetcher.invoke(
+      const fetcher = await getPostgresFetcher();
+      const { runId } = await fetcher.invoke(
         'workflows/parallel-steps.ts',
         'parallelSteps',
-        [100]
+        [20]
       );
-      await waitForCompletion(postgres.fetcher, runId, 200);
+      await waitForCompletion(fetcher, runId, 200);
     },
     { iterations: 3, warmupIterations: 1 }
   );
@@ -189,14 +174,13 @@ describe('Postgres World - Step Execution Latency', () => {
   bench(
     'sequential steps (10)',
     async () => {
-      const postgres = await postgresSetupPromise;
-      if (!postgres) return;
-      const { runId } = await postgres.fetcher.invoke(
+      const fetcher = await getPostgresFetcher();
+      const { runId } = await fetcher.invoke(
         'workflows/sequential-steps.ts',
         'sequentialSteps',
         [10]
       );
-      await waitForCompletion(postgres.fetcher, runId, 200);
+      await waitForCompletion(fetcher, runId, 200);
     },
     { iterations: 5, warmupIterations: 1 }
   );
@@ -204,13 +188,8 @@ describe('Postgres World - Step Execution Latency', () => {
   bench(
     'invoke latency only',
     async () => {
-      const postgres = await postgresSetupPromise;
-      if (!postgres) return;
-      await postgres.fetcher.invoke(
-        'workflows/single-step.ts',
-        'singleStep',
-        [1, 2]
-      );
+      const fetcher = await getPostgresFetcher();
+      await fetcher.invoke('workflows/single-step.ts', 'singleStep', [1, 2]);
     },
     { iterations: 20, warmupIterations: 5 }
   );

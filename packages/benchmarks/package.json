@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "wf build && mv .well-known/workflow/v1/flow.js .well-known/workflow/v1/flow.cjs && mv .well-known/workflow/v1/step.js .well-known/workflow/v1/step.cjs && tsc",
-    "bench": "vitest bench"
+    "bench": "vitest bench",
+    "bench:local": "vitest bench --testNamePattern='Local World'",
+    "bench:postgres": "vitest bench --testNamePattern='Postgres World'"
   },
   "dependencies": {
     "@hono/node-server": "1.19.5",
