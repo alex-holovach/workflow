@@ -318,6 +318,19 @@ importers:
         version: link:../workflow
 
   packages/benchmarks:
+    dependencies:
+      '@hono/node-server':
+        specifier: 1.19.5
+        version: 1.19.5(hono@4.9.10)
+      '@workflow/cli':
+        specifier: workspace:*
+        version: link:../cli
+      hono:
+        specifier: 4.9.10
+        version: 4.9.10
+      workflow:
+        specifier: workspace:*
+        version: link:../workflow
     devDependencies:
       '@testcontainers/postgresql':
         specifier: 11.7.1
@@ -334,9 +347,6 @@ importers:
       '@workflow/world':
         specifier: workspace:*
         version: link:../world
-      '@workflow/world-testing':
-        specifier: workspace:*
-        version: link:../world-testing
       jsonlines:
         specifier: 0.1.1
         version: 0.1.1

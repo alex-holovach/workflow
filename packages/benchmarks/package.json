@@ -5,7 +5,14 @@
   "description": "Latency benchmarks for Workflow DevKit world implementations",
   "type": "module",
   "scripts": {
+    "build": "wf build && mv .well-known/workflow/v1/flow.js .well-known/workflow/v1/flow.cjs && mv .well-known/workflow/v1/step.js .well-known/workflow/v1/step.cjs && tsc",
     "bench": "vitest bench"
+  },
+  "dependencies": {
+    "@hono/node-server": "1.19.5",
+    "@workflow/cli": "workspace:*",
+    "workflow": "workspace:*",
+    "hono": "4.9.10"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "11.7.1",
@@ -13,7 +20,6 @@
     "@types/node": "catalog:",
     "@workflow/tsconfig": "workspace:*",
     "@workflow/world": "workspace:*",
-    "@workflow/world-testing": "workspace:*",
     "jsonlines": "0.1.1",
     "vitest": "catalog:",
     "zod": "catalog:"

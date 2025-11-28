@@ -9,19 +9,19 @@ interface ServerControl {
 }
 
 /**
- * Starts a workflow test server without vitest hooks.
+ * Starts the benchmark server without vitest hooks.
  * Returns a control object with port info and a kill function.
  */
 export async function launchServer(opts: {
   world: string;
 }): Promise<ServerControl> {
-  // world-testing directory (where server.mjs lives and has the built workflows)
-  const worldTestingDir = path.join(process.cwd(), '../world-testing');
-  const serverPath = path.join(worldTestingDir, 'dist/src/server.mjs');
+  // Use local benchmark server (built by wf build)
+  const benchmarksDir = path.join(process.cwd());
+  const serverPath = path.join(benchmarksDir, 'dist/server.mjs');
 
   const proc = cp.spawn('node', [serverPath], {
     stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
-    cwd: worldTestingDir, // Run from world-testing directory
+    cwd: benchmarksDir, // Run from benchmarks directory
     env: {
       ...process.env,
       WORKFLOW_TARGET_WORLD: opts.world,

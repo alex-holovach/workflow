@@ -1,8 +1,12 @@
 {
   "extends": "@workflow/tsconfig/base.json",
   "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "module": "NodeNext",
     "outDir": "dist",
-    "rootDir": "src"
+    "lib": ["ES2024"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", ".well-known"]
 }

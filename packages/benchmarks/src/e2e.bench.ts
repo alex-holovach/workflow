@@ -15,6 +15,11 @@ const packagesDir = path.resolve(__dirname, '../..'); // benchmarks/src -> bench
  * Compares step execution latency between local (filesystem) and postgres worlds.
  * Tests measure the full workflow lifecycle: invoke -> step execution -> completion.
  *
+ * Uses dedicated benchmark workflows from packages/benchmarks/workflows/:
+ * - single-step.ts: One durable step (addition)
+ * - parallel-steps.ts: N steps in parallel via Promise.all
+ * - sequential-steps.ts: N steps executed sequentially
+ *
  * Requires Docker to be running for postgres benchmarks.
  */
 
@@ -96,12 +101,12 @@ process.on('exit', () => {
 
 describe('Local World - Step Execution Latency', () => {
   bench(
-    'single step (addition)',
+    'single step',
     async () => {
       const { fetcher } = await localServerPromise;
       const { runId } = await fetcher.invoke(
-        'workflows/addition.ts',
-        'addition',
+        'workflows/single-step.ts',
+        'singleStep',
         [1, 2]
       );
       await waitForCompletion(fetcher, runId);
@@ -110,13 +115,13 @@ describe('Local World - Step Execution Latency', () => {
   );
 
   bench(
-    'parallel steps (110 steps)',
+    'parallel steps (100)',
     async () => {
       const { fetcher } = await localServerPromise;
       const { runId } = await fetcher.invoke(
-        'workflows/noop.ts',
-        'brokenWf',
-        []
+        'workflows/parallel-steps.ts',
+        'parallelSteps',
+        [100]
       );
       await waitForCompletion(fetcher, runId, 50);
     },
@@ -124,10 +129,24 @@ describe('Local World - Step Execution Latency', () => {
   );
 
   bench(
+    'sequential steps (10)',
+    async () => {
+      const { fetcher } = await localServerPromise;
+      const { runId } = await fetcher.invoke(
+        'workflows/sequential-steps.ts',
+        'sequentialSteps',
+        [10]
+      );
+      await waitForCompletion(fetcher, runId, 20);
+    },
+    { iterations: 20, warmupIterations: 3 }
+  );
+
+  bench(
     'invoke latency only',
     async () => {
       const { fetcher } = await localServerPromise;
-      await fetcher.invoke('workflows/addition.ts', 'addition', [1, 2]);
+      await fetcher.invoke('workflows/single-step.ts', 'singleStep', [1, 2]);
     },
     { iterations: 100, warmupIterations: 10 }
   );
@@ -138,33 +157,48 @@ describe('Postgres World - Step Execution Latency', () => {
   // Fewer iterations to keep benchmark time reasonable
 
   bench(
-    'single step (addition)',
+    'single step',
     async () => {
       const postgres = await postgresSetupPromise;
       if (!postgres) return;
       const { runId } = await postgres.fetcher.invoke(
-        'workflows/addition.ts',
-        'addition',
+        'workflows/single-step.ts',
+        'singleStep',
         [1, 2]
       );
-      await waitForCompletion(postgres.fetcher, runId, 100); // Longer poll interval
+      await waitForCompletion(postgres.fetcher, runId, 100);
     },
     { iterations: 10, warmupIterations: 2 }
   );
 
   bench(
-    'parallel steps (110 steps)',
+    'parallel steps (100)',
     async () => {
       const postgres = await postgresSetupPromise;
       if (!postgres) return;
       const { runId } = await postgres.fetcher.invoke(
-        'workflows/noop.ts',
-        'brokenWf',
-        []
+        'workflows/parallel-steps.ts',
+        'parallelSteps',
+        [100]
       );
-      await waitForCompletion(postgres.fetcher, runId, 200); // Longer poll interval
+      await waitForCompletion(postgres.fetcher, runId, 200);
     },
     { iterations: 3, warmupIterations: 1 }
+  );
+
+  bench(
+    'sequential steps (10)',
+    async () => {
+      const postgres = await postgresSetupPromise;
+      if (!postgres) return;
+      const { runId } = await postgres.fetcher.invoke(
+        'workflows/sequential-steps.ts',
+        'sequentialSteps',
+        [10]
+      );
+      await waitForCompletion(postgres.fetcher, runId, 200);
+    },
+    { iterations: 5, warmupIterations: 1 }
   );
 
   bench(
@@ -173,8 +207,8 @@ describe('Postgres World - Step Execution Latency', () => {
       const postgres = await postgresSetupPromise;
       if (!postgres) return;
       await postgres.fetcher.invoke(
-        'workflows/addition.ts',
-        'addition',
+        'workflows/single-step.ts',
+        'singleStep',
         [1, 2]
       );
     },
