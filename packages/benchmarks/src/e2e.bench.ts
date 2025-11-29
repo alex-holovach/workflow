@@ -103,13 +103,13 @@ describe('Local World - Step Execution Latency', () => {
   );
 
   bench(
-    'parallel steps (20)',
+    'parallel steps (10)',
     async () => {
       const fetcher = await getLocalFetcher();
       const { runId } = await fetcher.invoke(
         'workflows/parallel-steps.ts',
         'parallelSteps',
-        [20]
+        [10]
       );
       await waitForCompletion(fetcher, runId, 50);
     },
@@ -128,15 +128,6 @@ describe('Local World - Step Execution Latency', () => {
       await waitForCompletion(fetcher, runId, 20);
     },
     { iterations: 5, warmupIterations: 1 }
-  );
-
-  bench(
-    'invoke latency only',
-    async () => {
-      const fetcher = await getLocalFetcher();
-      await fetcher.invoke('workflows/single-step.ts', 'singleStep', [1, 2]);
-    },
-    { iterations: 20, warmupIterations: 3 }
   );
 });
 
@@ -158,13 +149,13 @@ describe('Postgres World - Step Execution Latency', () => {
   );
 
   bench(
-    'parallel steps (20)',
+    'parallel steps (10)',
     async () => {
       const fetcher = await getPostgresFetcher();
       const { runId } = await fetcher.invoke(
         'workflows/parallel-steps.ts',
         'parallelSteps',
-        [20]
+        [10]
       );
       await waitForCompletion(fetcher, runId, 200);
     },
@@ -183,14 +174,5 @@ describe('Postgres World - Step Execution Latency', () => {
       await waitForCompletion(fetcher, runId, 200);
     },
     { iterations: 2, warmupIterations: 1 }
-  );
-
-  bench(
-    'invoke latency only',
-    async () => {
-      const fetcher = await getPostgresFetcher();
-      await fetcher.invoke('workflows/single-step.ts', 'singleStep', [1, 2]);
-    },
-    { iterations: 10, warmupIterations: 2 }
   );
 });
