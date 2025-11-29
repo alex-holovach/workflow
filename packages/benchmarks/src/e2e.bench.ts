@@ -99,7 +99,7 @@ describe('Local World - Step Execution Latency', () => {
       );
       await waitForCompletion(fetcher, runId);
     },
-    { iterations: 50, warmupIterations: 5 }
+    { iterations: 10, warmupIterations: 2 }
   );
 
   bench(
@@ -113,7 +113,7 @@ describe('Local World - Step Execution Latency', () => {
       );
       await waitForCompletion(fetcher, runId, 50);
     },
-    { iterations: 10, warmupIterations: 2 }
+    { iterations: 5, warmupIterations: 1 }
   );
 
   bench(
@@ -127,7 +127,7 @@ describe('Local World - Step Execution Latency', () => {
       );
       await waitForCompletion(fetcher, runId, 20);
     },
-    { iterations: 20, warmupIterations: 3 }
+    { iterations: 5, warmupIterations: 1 }
   );
 
   bench(
@@ -136,7 +136,7 @@ describe('Local World - Step Execution Latency', () => {
       const fetcher = await getLocalFetcher();
       await fetcher.invoke('workflows/single-step.ts', 'singleStep', [1, 2]);
     },
-    { iterations: 100, warmupIterations: 10 }
+    { iterations: 20, warmupIterations: 3 }
   );
 });
 
@@ -154,7 +154,7 @@ describe('Postgres World - Step Execution Latency', () => {
       );
       await waitForCompletion(fetcher, runId, 100);
     },
-    { iterations: 10, warmupIterations: 2 }
+    { iterations: 3, warmupIterations: 1 }
   );
 
   bench(
@@ -168,7 +168,7 @@ describe('Postgres World - Step Execution Latency', () => {
       );
       await waitForCompletion(fetcher, runId, 200);
     },
-    { iterations: 3, warmupIterations: 1 }
+    { iterations: 2, warmupIterations: 1 }
   );
 
   bench(
@@ -182,7 +182,7 @@ describe('Postgres World - Step Execution Latency', () => {
       );
       await waitForCompletion(fetcher, runId, 200);
     },
-    { iterations: 5, warmupIterations: 1 }
+    { iterations: 2, warmupIterations: 1 }
   );
 
   bench(
@@ -191,6 +191,6 @@ describe('Postgres World - Step Execution Latency', () => {
       const fetcher = await getPostgresFetcher();
       await fetcher.invoke('workflows/single-step.ts', 'singleStep', [1, 2]);
     },
-    { iterations: 20, warmupIterations: 5 }
+    { iterations: 10, warmupIterations: 2 }
   );
 });
