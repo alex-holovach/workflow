@@ -22,6 +22,7 @@ const CONFIG_PARAM_KEYS = [
   'team',
   'port',
   'dataDir',
+  'postgresUrl',
 ] as const;
 
 /**
@@ -132,13 +133,19 @@ export function buildUrlWithConfig(
 }
 
 export const worldConfigToEnvMap = (config: WorldConfig): EnvMap => {
+  const isPostgres = config.backend === 'postgres';
+
   return {
-    WORKFLOW_TARGET_WORLD: config.backend,
+    WORKFLOW_TARGET_WORLD: isPostgres
+      ? '@workflow/world-postgres'
+      : config.backend,
     WORKFLOW_VERCEL_ENV: config.env,
     WORKFLOW_VERCEL_AUTH_TOKEN: config.authToken,
     WORKFLOW_VERCEL_PROJECT: config.project,
     WORKFLOW_VERCEL_TEAM: config.team,
     PORT: config.port,
     WORKFLOW_EMBEDDED_DATA_DIR: config.dataDir,
+    // Postgres env vars
+    WORKFLOW_POSTGRES_URL: config.postgresUrl,
   };
 };

@@ -11,6 +11,8 @@ export interface WorldConfig {
   team?: string;
   port?: string;
   dataDir?: string;
+  // Postgres fields
+  postgresUrl?: string;
 }
 
 export interface ValidationError {
@@ -46,6 +48,25 @@ export async function validateWorldConfig(
           message: 'Port must be a number between 1 and 65535',
         });
       }
+    }
+  }
+
+  if (backend === 'postgres') {
+    // Validate postgres connection string
+    if (!config.postgresUrl) {
+      errors.push({
+        field: 'postgresUrl',
+        message: 'PostgreSQL connection string is required',
+      });
+    } else if (
+      !config.postgresUrl.startsWith('postgres://') &&
+      !config.postgresUrl.startsWith('postgresql://')
+    ) {
+      errors.push({
+        field: 'postgresUrl',
+        message:
+          'Invalid PostgreSQL connection string format (must start with postgres:// or postgresql://)',
+      });
     }
   }
 

@@ -42,6 +42,7 @@
     "@types/react-dom": "19",
     "@workflow/core": "workspace:*",
     "@workflow/world": "workspace:*",
+    "@workflow/world-postgres": "workspace:*",
     "@workflow/web-shared": "workspace:*",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

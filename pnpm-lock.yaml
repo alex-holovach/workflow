@@ -806,6 +806,9 @@ importers:
       '@workflow/world':
         specifier: workspace:*
         version: link:../world
+      '@workflow/world-postgres':
+        specifier: workspace:*
+        version: link:../world-postgres
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1

@@ -32,6 +32,7 @@ export function SettingsSidebar() {
 
   const backend = localConfig.backend || 'embedded';
   const isEmbedded = backend === 'embedded';
+  const isPostgres = backend === 'postgres';
 
   // Update local config when query params change
   useEffect(() => {
@@ -123,6 +124,7 @@ export function SettingsSidebar() {
                     <SelectContent>
                       <SelectItem value="embedded">Embedded</SelectItem>
                       <SelectItem value="vercel">Vercel</SelectItem>
+                      <SelectItem value="postgres">PostgreSQL</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -175,7 +177,33 @@ export function SettingsSidebar() {
                   </>
                 )}
 
-                {!isEmbedded && (
+                {isPostgres && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="postgresUrl">Connection URL</Label>
+                      <Input
+                        id="postgresUrl"
+                        value={localConfig.postgresUrl || ''}
+                        onChange={(e) =>
+                          handleInputChange('postgresUrl', e.target.value)
+                        }
+                        placeholder="postgres://user:pass@host:5432/db"
+                        className={
+                          getFieldError('postgresUrl')
+                            ? 'border-destructive'
+                            : ''
+                        }
+                      />
+                      {getFieldError('postgresUrl') && (
+                        <p className="text-sm text-destructive">
+                          {getFieldError('postgresUrl')}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {!isEmbedded && !isPostgres && (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="env">Environment</Label>
