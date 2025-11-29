@@ -13,6 +13,15 @@ const DEFAULT_CONFIG: WorldConfig = {
   env: 'production',
 };
 
+export const resolveTargetWorld = (backend?: string) => {
+  switch (backend) {
+    case 'postgres':
+      return '@workflow/world-postgres';
+    default:
+      return backend;
+  }
+};
+
 // Config query param keys
 const CONFIG_PARAM_KEYS = [
   'backend',
@@ -133,12 +142,8 @@ export function buildUrlWithConfig(
 }
 
 export const worldConfigToEnvMap = (config: WorldConfig): EnvMap => {
-  const isPostgres = config.backend === 'postgres';
-
   return {
-    WORKFLOW_TARGET_WORLD: isPostgres
-      ? '@workflow/world-postgres'
-      : config.backend,
+    WORKFLOW_TARGET_WORLD: resolveTargetWorld(config.backend),
     WORKFLOW_VERCEL_ENV: config.env,
     WORKFLOW_VERCEL_AUTH_TOKEN: config.authToken,
     WORKFLOW_VERCEL_PROJECT: config.project,
